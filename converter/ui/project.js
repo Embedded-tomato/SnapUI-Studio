@@ -5,6 +5,7 @@
 
 const Proj = {
   project: null,        /* {format, screen, nav, pages, order} */
+  slotDefs: null,       /* 当前工程的槽位定义（随分辨率计算） */
   screenIdx: 0,
   selected: null,       /* 选中的组件实例 */
   dragType: null,       /* 正在拖的组件类型（新组件） */
@@ -18,25 +19,28 @@ const pScreen = () => Proj.project.pages[pType()];
 const tmpl = () => TEMPLATES[Proj.project.screen.template];
 
 /* ---------- 工程创建 / 序列化 ---------- */
-function newProject(templateId) {
+function newProject(templateId, opts) {
   const t = TEMPLATES[templateId];
   Proj.seq = 1;
+  const W = opts.width, H = opts.height;
   const pages = {};
   for (const name of t.defaultPages) pages[name] = [];
   Proj.project = {
     format: "snapui@1",
-    screen: { ...t.screen, template: templateId },
+    screen: { width: W, height: H, shape: opts.shape || "RECT", template: templateId },
     nav: {},
     pages,
     order: [...t.defaultPages],
   };
+  Proj.slotDefs = t.slots(W, H);
   Proj.screenIdx = 0;
   Proj.selected = null;
   enterProjMode();
-  log(`✅ 已新建工程（模板：${t.name}）`);
+  log(`✅ 已新建工程：${W} × ${H} ${Proj.project.screen.shape === "CIRCLE" ? "圆形" : "矩形"}（模板：${t.name}）`);
 }
 
 function enterProjMode() {
+  $("empty").style.display = "none";
   $("workspace").style.display = "none";
   $("projWorkspace").style.display = "flex";
   $("toolbar").style.display = "flex";
@@ -59,6 +63,7 @@ function renderPalette() {
   const pal = P$("palette");
   pal.innerHTML = "<h3>组件</h3>";
   for (const [type, def] of Object.entries(COMPONENTS)) {
+    if (def.system) continue;   /* 系统组件不进面板 */
     const el = document.createElement("div");
     el.className = "pal-item";
     el.draggable = true;
@@ -80,7 +85,7 @@ function highlightSlots(type) {
   document.querySelectorAll("#projScreen .slot").forEach(slot => {
     slot.classList.remove("slot-idle", "slot-dim", "slot-full");
     const sid = slot.dataset.slot;
-    const def = tmpl().slots[sid];
+    const def = Proj.slotDefs[sid];
     const legal = def.allows.includes(type);
     const count = pScreen().filter(c => c.slot === sid).length;
     if (!legal) slot.classList.add("slot-dim");
@@ -110,7 +115,20 @@ function renderProjCanvas() {
   scr.style.width = t.screen.width + "px";
   scr.style.height = t.screen.height + "px";
   scr.innerHTML = "";
-  for (const [sid, sdef] of Object.entries(t.slots)) {
+
+  /* 系统栏：屏幕名 + 时钟 + 电量（内置，不可拖入） */
+  const barH = t.systemBar.height;
+  const bar = document.createElement("div");
+  bar.className = "sys-bar";
+  bar.style.cssText = `position:absolute;left:0;top:0;width:${t.screen.width}px;height:${barH}px;` +
+    "display:flex;align-items:center;justify-content:space-between;padding:0 14px;pointer-events:none";
+  bar.innerHTML =
+    `<span style="color:#fff;font-size:14px;font-weight:600">${pType()}</span>` +
+    `<span style="color:#fff;font-size:12px;display:flex;gap:10px;align-items:center">` +
+    `<span>10:43</span><span>▮ 86%</span></span>`;
+  scr.appendChild(bar);
+
+  for (const [sid, sdef] of Object.entries(Proj.slotDefs)) {
     const slot = document.createElement("div");
     slot.className = "slot slot-idle";
     slot.dataset.slot = sid;
@@ -156,7 +174,7 @@ function updateSlotHints() {
       if (!hint) {
         hint = document.createElement("div");
         hint.className = "slot-empty-hint";
-        hint.textContent = "拖入 " + tmpl().slots[sid].allows
+        hint.textContent = "拖入 " + Proj.slotDefs[sid].allows
           .map(t => COMPONENTS[t].name).join(" / ");
         slot.appendChild(hint);
       }
@@ -221,7 +239,7 @@ function styleChip(el, c) {
 }
 
 function onDropToSlot(sid) {
-  const sdef = tmpl().slots[sid];
+  const sdef = Proj.slotDefs[sid];
   /* 移动已有组件 */
   if (Proj.dragMove) {
     const c = Proj.dragMove;
@@ -348,6 +366,8 @@ function saveProject() {
 function loadProjectJson(json) {
   if (!json.format || !json.pages) { log("❌ 不是有效的 SnapUI 工程文件"); return; }
   Proj.project = json;
+  Proj.slotDefs = TEMPLATES[Proj.project.screen.template].slots(
+    Proj.project.screen.width, Proj.project.screen.height);
   Proj.screenIdx = 0;
   Proj.selected = null;
   /* 兼容无 order 字段的旧文件 */
@@ -355,3 +375,44 @@ function loadProjectJson(json) {
   enterProjMode();
   log(`✅ 已加载工程：${Proj.project.order.length} 个屏幕`);
 }
+
+/* ---------- 新建工程对话框 ---------- */
+const NEW_SIZES = [
+  { w: 240, h: 280, label: "240 × 280 · 手环" },
+  { w: 240, h: 240, label: "240 × 240 · 方屏" },
+  { w: 320, h: 320, label: "320 × 320 · 圆表" },
+  { w: 480, h: 480, label: "480 × 480 · 相机" },
+];
+const NEW_SHAPES = [{ v: "RECT", label: "矩形" }, { v: "CIRCLE", label: "圆形" }];
+let dlgSize = 3, dlgShape = "RECT";
+
+function openNewDialog() {
+  const so = P$("sizeOpts");
+  so.innerHTML = "";
+  NEW_SIZES.forEach((s, i) => {
+    const b = document.createElement("button");
+    b.className = "opt" + (i === dlgSize ? " active" : "");
+    b.textContent = s.label;
+    b.onclick = () => { dlgSize = i; openNewDialog(); };
+    so.appendChild(b);
+  });
+  const ho = P$("shapeOpts");
+  ho.innerHTML = "";
+  NEW_SHAPES.forEach(s => {
+    const b = document.createElement("button");
+    b.className = "opt" + (s.v === dlgShape ? " active" : "");
+    b.textContent = s.label;
+    b.onclick = () => { dlgShape = s.v; openNewDialog(); };
+    ho.appendChild(b);
+  });
+  P$("newDlg").style.display = "flex";
+}
+function closeNewDialog() { P$("newDlg").style.display = "none"; }
+
+P$("dlgCancel").onclick = closeNewDialog;
+P$("dlgCreate").onclick = () => {
+  const s = NEW_SIZES[dlgSize];
+  closeNewDialog();
+  newProject("camera", { width: s.w, height: s.h, shape: dlgShape });
+};
+P$("newDlg").onclick = e => { if (e.target === P$("newDlg")) closeNewDialog(); };

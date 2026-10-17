@@ -245,6 +245,21 @@
 
 <div id="logbar"></div>
 
+<!-- 新建工程对话框 -->
+<div id="newDlg" class="dlg-mask">
+  <div class="dlg">
+    <h3>新建工程</h3>
+    <div class="dlg-sec">分辨率</div>
+    <div id="sizeOpts" class="opt-row"></div>
+    <div class="dlg-sec">形状</div>
+    <div id="shapeOpts" class="opt-row"></div>
+    <div class="dlg-btns">
+      <button class="btn btn-ghost" id="dlgCancel">取消</button>
+      <button class="btn btn-primary" id="dlgCreate">创建</button>
+    </div>
+  </div>
+</div>
+
 <script src="registry.js"></script>
 <script src="project.js"></script>
 <script>
@@ -569,8 +584,13 @@ function renderOverview() {
 
 function loadProject(json) {
   project = parseSpj(json);
+  Proj.project = null; Proj.slotDefs = null;
+  $("projWorkspace").style.display = "none";
+  $("propPanel").style.display = "none";
   $("empty").style.display = "none";
   $("workspace").style.display = "flex";
+  $("btnOverview").style.display = "";
+  $("btnSaveProj").style.display = "none";
   $("btnImport").style.display = "";
   $("btnSaveProj").style.display = "";
   $("btnSim").style.display = "";
@@ -716,7 +736,7 @@ window.addEventListener("resize", () => {
 });
 
 /* ============ 新建工程模式入口 ============ */
-$("btnNewProj").onclick = () => newProject("camera");
+$("btnNewProj").onclick = openNewDialog;
 $("btnSaveProj").onclick = saveProject;
 P$("projWrap").onclick = e => {
   if (e.target === P$("projWrap")) { Proj.selected = null; renderPropPanel();

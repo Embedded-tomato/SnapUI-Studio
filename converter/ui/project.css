@@ -98,3 +98,23 @@
   background: #fef2f2; color: #dc2626; cursor: pointer; font-family: inherit;
 }
 .prop-del:hover { background: #fee2e2; }
+
+/* 新建工程对话框 */
+.dlg-mask {
+  position: fixed; inset: 0; background: rgba(0,0,0,.35);
+  display: none; align-items: center; justify-content: center; z-index: 50;
+}
+.dlg {
+  width: 340px; background: #fff; border-radius: 14px; padding: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+}
+.dlg h3 { font-size: 15px; margin-bottom: 4px; }
+.dlg-sec { font-size: 12px; color: var(--text-3); margin: 14px 0 8px; }
+.opt-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.opt {
+  border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px;
+  font-size: 12.5px; cursor: pointer; background: #fff; font-family: inherit;
+}
+.opt:hover { background: #f3f4f6; }
+.opt.active { border-color: var(--accent); background: #eef3ff; color: var(--accent); }
+.dlg-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
