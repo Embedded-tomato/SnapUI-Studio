@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SPJ 工程转换器</title>
+<title>SnapUI Studio</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -104,6 +104,38 @@
   .page-item .cnt { margin-left: auto; font-size: 11px; color: var(--text-3); }
 
   #stage { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  /* 工具栏（红框预留区） */
+  #toolbar {
+    height: 46px; background: var(--card); border-bottom: 1px solid var(--border);
+    display: none; align-items: center; gap: 8px; padding: 0 14px; flex-shrink: 0;
+  }
+  .tool-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--border); background: #fff; color: var(--text-2);
+    border-radius: 8px; padding: 6px 12px; font-size: 12.5px; cursor: pointer;
+    font-family: inherit; transition: all .15s;
+  }
+  .tool-btn:hover { background: #f3f4f6; }
+  .tool-btn.active { background: #eef3ff; border-color: #c7d7ff; color: var(--accent); }
+
+  /* 总览模式 */
+  #overviewWrap {
+    flex: 1; display: none; overflow: auto; padding: 24px;
+  }
+  #overviewGrid { display: grid; gap: 28px; margin: auto; align-content: center; }
+  .ov-cell { display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; }
+  .ov-device {
+    position: relative; overflow: hidden; background: #111;
+    border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.15), 0 0 0 6px #2a2a2e;
+    flex-shrink: 0; transition: box-shadow .15s;
+  }
+  .ov-device.circle { border-radius: 50%; }
+  .ov-cell:hover .ov-device { box-shadow: 0 8px 24px rgba(0,0,0,.15), 0 0 0 6px #3d6df5; }
+  .ov-screen { position: relative; transform-origin: 0 0; }
+  .ov-name { font-size: 12px; color: var(--text-2); }
+  .ov-cell:hover .ov-name { color: var(--accent); }
+
   #canvasWrap {
     flex: 1; display: flex; align-items: center; justify-content: center;
     overflow: auto; padding: 24px;
@@ -141,8 +173,8 @@
 <header>
   <div class="logo">S</div>
   <div>
-    <h1>SPJ 工程转换器</h1>
-    <div class="sub">SquareLine 工程 → 中间 JSON / LVGL C 代码</div>
+    <h1>SnapUI Studio</h1>
+    <div class="sub">SquareLine 工程迁移 · 实时仿真 · C 代码导出</div>
   </div>
   <div class="spacer"></div>
   <span class="badge" id="verBadge" style="display:none"></span>
@@ -173,6 +205,11 @@
       <div id="pageList"></div>
     </aside>
     <div id="stage">
+      <div id="toolbar">
+        <button class="tool-btn" id="btnOverview" title="切换 总览 / 单屏">▦ 总览</button>
+        <span style="font-size:12px;color:var(--text-3)" id="toolbarHint"></span>
+      </div>
+      <div id="overviewWrap"><div id="overviewGrid"></div></div>
       <div id="canvasWrap">
         <div id="device"><div id="screen"></div></div>
         <div id="simDevice" style="display:none;position:relative">
@@ -360,12 +397,12 @@ function renderWidget(w, pw, ph) {
       }
       const deg = (w.rotation || 0) / 10;
       if (deg) img.style.transform = `rotate(${deg}deg)`;
-      img.onload = () => fixAutosize();  /* 图片加载后重算锚定 */
+      img.onload = () => fixAutosizeAll();  /* 图片加载后重算锚定 */
       if (w.asset) {
         window.pywebview.api.get_asset(w.asset).then(url => {
           if (url) img.src = url;
           else { el.style.background = "rgba(255,255,255,.1)"; el.textContent = "🖼"; }
-          fixAutosize();
+          fixAutosizeAll();
         });
       }
       el.appendChild(img);
@@ -376,7 +413,7 @@ function renderWidget(w, pw, ph) {
       if (s.bgImage) {
         window.pywebview.api.get_asset(s.bgImage).then(url => {
           if (url) { el.style.backgroundImage = `url(${url})`; el.style.backgroundSize = "cover"; }
-          fixAutosize();
+          fixAutosizeAll();
         });
       }
       el.style.borderRadius = (s.radius ?? 4) + "px";
@@ -390,11 +427,11 @@ function renderWidget(w, pw, ph) {
   return el;
 }
 
-/* 自适应组件：按 LVGL 语义先量内容尺寸再锚定 */
-function fixAutosize() {
-  const scr = $("screen");
-  const scale = scr.style.transform ? parseFloat(scr.style.transform.replace(/[^0-9.]/g, "")) : 1;
-  scr.querySelectorAll("[data-autosize]").forEach(el => {
+/* 自适应组件：按 LVGL 语义先量内容尺寸再锚定（root 为某个荧幕容器） */
+function fixAutosize(root) {
+  root = root || $("screen");
+  const scale = root.style.transform ? parseFloat(root.style.transform.replace(/[^0-9.]/g, "")) : 1;
+  root.querySelectorAll("[data-autosize]").forEach(el => {
     const rw = el.offsetWidth, rh = el.offsetHeight;
     const a = ANCHORS[el.dataset.align] || ANCHORS.TOP_LEFT;
     const [ox, oy] = JSON.parse(el.dataset.offset);
@@ -403,6 +440,10 @@ function fixAutosize() {
     el.style.top = (a[1] * ph - a[1] * rh + oy) + "px";
     el.style.visibility = "visible";
   });
+}
+function fixAutosizeAll() {
+  if ($("screen")) fixAutosize($("screen"));
+  document.querySelectorAll(".ov-screen").forEach(fixAutosize);
 }
 
 /* ============ 应用逻辑 ============ */
@@ -436,7 +477,70 @@ function showPage(i) {
   scr.style.height = project.height + "px";
   scr.innerHTML = "";
   for (const w of page.widgets) scr.appendChild(renderWidget(w, project.width, project.height));
-  requestAnimationFrame(fixAutosize);
+  requestAnimationFrame(fixAutosizeAll);
+}
+
+/* ============ 总览 / 单屏 视图 ============ */
+let viewMode = "single";  /* single | overview */
+
+function setViewMode(mode) {
+  viewMode = mode;
+  const ov = mode === "overview";
+  $("btnOverview").classList.toggle("active", ov);
+  $("toolbarHint").textContent = ov ? "点击任意屏幕进入单屏编辑" : "";
+  $("overviewWrap").style.display = ov ? "flex" : "none";
+  $("canvasWrap").style.display = ov ? "none" : "flex";
+  if (ov) {
+    /* 切到总览时暂停仿真画面展示，回到单屏可继续 */
+    if (sim) $("simDevice").style.display = "none";
+    renderOverview();
+  } else {
+    if (sim) $("simDevice").style.display = "block";
+    showPage(pageIdx);
+  }
+}
+$("btnOverview").onclick = () => setViewMode(viewMode === "overview" ? "single" : "overview");
+
+/* 多荧幕自动吸附排版：按可用区域宽高比决定列数，所有屏幕等比缩放对齐网格 */
+function renderOverview() {
+  const grid = $("overviewGrid");
+  grid.innerHTML = "";
+  const wrap = $("overviewWrap");
+  const n = project.pages.length;
+  if (!n) return;
+  const aw = Math.max(200, wrap.clientWidth - 48);
+  const ah = Math.max(200, wrap.clientHeight - 48);
+  const cols = Math.min(n, Math.max(1, Math.round(Math.sqrt(n * aw / ah))));
+  const rows = Math.ceil(n / cols);
+  grid.style.gridTemplateColumns = `repeat(${cols}, auto)`;
+  const gap = 28, nameH = 22;
+  const scale = Math.min(1,
+    (aw - (cols - 1) * gap) / cols / project.width,
+    (ah - (rows - 1) * gap - nameH * rows) / rows / project.height);
+  project.pages.forEach((p, i) => {
+    const cell = document.createElement("div");
+    cell.className = "ov-cell";
+    const dev = document.createElement("div");
+    dev.className = "ov-device" + (project.shape === "CIRCLE" ? " circle" : "");
+    dev.style.width = project.width * scale + "px";
+    dev.style.height = project.height * scale + "px";
+    dev.style.background = rgba(p.bgColor, "#111");
+    const scr = document.createElement("div");
+    scr.className = "ov-screen";
+    scr.style.width = project.width + "px";
+    scr.style.height = project.height + "px";
+    scr.style.transform = `scale(${scale})`;
+    for (const w of p.widgets) scr.appendChild(renderWidget(w, project.width, project.height));
+    dev.appendChild(scr);
+    cell.appendChild(dev);
+    const nm = document.createElement("div");
+    nm.className = "ov-name";
+    nm.textContent = `${p.name} · ${countWidgets(p.widgets)} 组件`;
+    cell.appendChild(nm);
+    cell.onclick = () => { pageIdx = i; setViewMode("single"); };
+    grid.appendChild(cell);
+  });
+  requestAnimationFrame(fixAutosizeAll);
 }
 
 function loadProject(json) {
@@ -449,6 +553,11 @@ function loadProject(json) {
   $("btnExportC").style.display = "";
   $("verBadge").style.display = "";
   $("verBadge").textContent = "SquareLine " + (project.editorVersion || "?");
+  $("toolbar").style.display = "flex";
+  viewMode = "single";
+  $("btnOverview").classList.remove("active");
+  $("overviewWrap").style.display = "none";
+  $("canvasWrap").style.display = "flex";
   $("projInfo").innerHTML =
     `分辨率 <b>${project.width} × ${project.height}</b><br>` +
     `形状 <b>${project.shape === "CIRCLE" ? "圆形" : "矩形"}</b><br>` +
@@ -459,7 +568,7 @@ function loadProject(json) {
     const el = document.createElement("div");
     el.className = "page-item";
     el.innerHTML = `<span>🖥</span> ${p.name} <span class="cnt">${countWidgets(p.widgets)}</span>`;
-    el.onclick = () => showPage(i);
+    el.onclick = () => { pageIdx = i; setViewMode("single"); };
     list.appendChild(el);
   });
   showPage(0);
@@ -501,6 +610,7 @@ document.body.ondrop = async e => {
 let sim = null;  /* {exports, fbPtr, w, h, ctx} */
 
 async function startSim() {
+  if (viewMode === "overview") setViewMode("single");
   log("⏳ 正在生成代码并编译 WASM 仿真内核…");
   $("btnSim").disabled = true;
   try {
@@ -573,7 +683,11 @@ $("btnExportC").onclick = async () => {
   }
 };
 
-window.addEventListener("resize", () => { if (project) showPage(pageIdx); });
+window.addEventListener("resize", () => {
+  if (!project) return;
+  if (viewMode === "overview") renderOverview();
+  else showPage(pageIdx);
+});
 </script>
 </body>
 </html>

@@ -180,7 +180,7 @@ class Api:
 if __name__ == "__main__":
     html = resource_path("converter", "ui", "index.html")
     win = webview.create_window(
-        "SPJ 工程转换器",
+        "SnapUI Studio",
         url=html,
         js_api=Api(),
         width=1120,

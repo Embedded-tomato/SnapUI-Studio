@@ -10,6 +10,7 @@ ZIG_DIR = os.path.dirname(ziglang.__file__)
 datas = [
     (os.path.join(ROOT, "converter", "ui"), "converter/ui"),
     (os.path.join(ROOT, "converter", "sim_main.c"), "converter"),
+    (os.path.join(ROOT, "converter", "assets", "icon.ico"), "converter/assets"),
     (os.path.join(ROOT, "tools", "gen_spj_c.py"), "tools"),
     (os.path.join(ROOT, "wasm", "shim.c"), "wasm"),
     (os.path.join(ROOT, "wasm", "conf", "lv_conf.h"), "wasm/conf"),
@@ -52,6 +53,7 @@ exe = EXE(
     strip=False,
     upx=False,
     console=False,
+    icon=os.path.join(ROOT, "converter", "assets", "icon.ico"),
 )
 
 coll = COLLECT(

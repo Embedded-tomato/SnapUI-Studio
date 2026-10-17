@@ -19,12 +19,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(ROOT, "converter", "app.py")
 LOG_DIR = os.path.join(ROOT, "build-tmp")
 LOG_FILE = os.path.join(LOG_DIR, "launcher.log")
-WINDOW_TITLE = "SPJ 工程转换器"
+WINDOW_TITLE = "SnapUI Studio"
+ICON_FILE = os.path.join(ROOT, "converter", "assets", "icon.ico")
 TIMEOUT = 60
 
 
 def find_main_window():
-    """按标题精确查找已打开的主窗口"""
+    """按标题精确查找已打开的主窗口，返回 hwnd 或 None"""
     found = []
 
     @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
@@ -36,7 +37,22 @@ def find_main_window():
         return True
 
     ctypes.windll.user32.EnumWindows(cb, None)
-    return bool(found)
+    return found[0] if found else None
+
+
+def apply_icon(hwnd):
+    """给主窗口设置任务栏/标题栏图标（WM_SETICON）"""
+    if not hwnd or not os.path.exists(ICON_FILE):
+        return
+    try:
+        user32 = ctypes.windll.user32
+        LR_LOADFROMFILE, LR_DEFAULTSIZE = 0x10, 0x40
+        hicon = user32.LoadImageW(None, ICON_FILE, 1, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE)
+        if hicon:
+            user32.SendMessageW(hwnd, 0x80, 0, hicon)  # WM_SETICON, ICON_SMALL
+            user32.SendMessageW(hwnd, 0x80, 1, hicon)  # WM_SETICON, ICON_BIG
+    except Exception:
+        pass
 
 
 def log_tail():
@@ -82,7 +98,9 @@ def main():
     try:
         while time.time() - t0 < TIMEOUT:
             root.update()
-            if find_main_window():
+            hwnd = find_main_window()
+            if hwnd:
+                apply_icon(hwnd)
                 return 0
             if proc.poll() is not None:
                 lbl.config(text="启动失败，详见 build-tmp/launcher.log\n" + log_tail(),
