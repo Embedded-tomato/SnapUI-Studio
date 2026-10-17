@@ -1,0 +1,44 @@
+{
+  "screen": { "width": 800, "height": 480 },
+  "nav": {
+    "preview": { "left": "settings", "up": "album", "down": "challenge" },
+    "settings": { "right": "preview" },
+    "album": { "down": "preview" },
+    "challenge": { "up": "preview" }
+  },
+  "pages": {
+    "preview": [
+      { "id": "c1", "type": "title", "slot": "topbar", "props": { "text": "相机 Demo" } },
+      { "id": "c2", "type": "clock", "slot": "topbar", "props": {} },
+      { "id": "c3", "type": "battery", "slot": "topbar", "props": { "percent": 86 } },
+      { "id": "c4", "type": "param", "slot": "leftbar", "props": { "text": "ISO 100" } },
+      { "id": "c5", "type": "param", "slot": "leftbar", "props": { "text": "F1.8" } },
+      { "id": "c6", "type": "param", "slot": "leftbar", "props": { "text": "1/125" } },
+      { "id": "c7", "type": "grid", "slot": "center", "props": { "visible": true } },
+      { "id": "c8", "type": "focusbox", "slot": "center", "props": {} },
+      { "id": "c9", "type": "bigbutton", "slot": "bottombar", "props": { "text": "回放", "accent": false } },
+      { "id": "c10", "type": "bigbutton", "slot": "bottombar", "props": { "text": "拍照", "accent": true } },
+      { "id": "c11", "type": "bigbutton", "slot": "bottombar", "props": { "text": "设置", "accent": false } }
+    ],
+    "settings": [
+      { "id": "s1", "type": "setting-switch", "slot": "settingsRows", "props": { "label": "网格线", "on": true } },
+      { "id": "s2", "type": "setting-switch", "slot": "settingsRows", "props": { "label": "电子防抖", "on": false } },
+      { "id": "s3", "type": "setting-switch", "slot": "settingsRows", "props": { "label": "人脸识别", "on": true } },
+      { "id": "s4", "type": "setting-slider", "slot": "settingsRows", "props": { "label": "曝光补偿", "value": 50 } },
+      { "id": "s5", "type": "setting-option", "slot": "settingsRows", "props": { "label": "照片尺寸", "value": "12MP" } }
+    ],
+    "album": [
+      { "id": "a1", "type": "photocell", "slot": "albumGrid", "props": { "label": "10-01" } },
+      { "id": "a2", "type": "photocell", "slot": "albumGrid", "props": { "label": "10-02" } },
+      { "id": "a3", "type": "photocell", "slot": "albumGrid", "props": { "label": "10-03" } },
+      { "id": "a4", "type": "photocell", "slot": "albumGrid", "props": { "label": "10-04" } },
+      { "id": "a5", "type": "photocell", "slot": "albumGrid", "props": { "label": "10-05" } },
+      { "id": "a6", "type": "photocell", "slot": "albumGrid", "props": { "label": "10-06" } }
+    ],
+    "challenge": [
+      { "id": "h1", "type": "challengerow", "slot": "challengeRows", "props": { "label": "每日一拍", "progress": 60 } },
+      { "id": "h2", "type": "challengerow", "slot": "challengeRows", "props": { "label": "夜景大师", "progress": 25 } },
+      { "id": "h3", "type": "challengerow", "slot": "challengeRows", "props": { "label": "人像十连", "progress": 90 } }
+    ]
+  }
+}

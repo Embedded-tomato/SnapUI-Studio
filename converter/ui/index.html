@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPJ 工程转换器</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #f7f7f8;
+    --card: #ffffff;
+    --border: #e8e8ec;
+    --text: #1f2329;
+    --text-2: #6b7280;
+    --text-3: #9ca3af;
+    --accent: #3d6df5;
+    --accent-hover: #2f5de0;
+    --radius: 14px;
+  }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  header {
+    height: 60px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .logo {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #3d6df5, #7b9bff);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 16px; font-weight: 700;
+  }
+  header h1 { font-size: 15px; font-weight: 600; }
+  header .sub { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+  .spacer { flex: 1; }
+  .btn {
+    border: none;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: #f0f0f3; }
+  .btn:disabled { opacity: .5; cursor: default; }
+
+  main { flex: 1; display: flex; min-height: 0; }
+
+  /* 空状态 */
+  #empty {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+  }
+  .dropzone {
+    width: 460px; padding: 56px 40px;
+    background: var(--card);
+    border: 2px dashed var(--border);
+    border-radius: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .dropzone:hover, .dropzone.over { border-color: var(--accent); background: #f5f8ff; }
+  .dropzone .icon { font-size: 44px; margin-bottom: 14px; }
+  .dropzone .t1 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .dropzone .t2 { font-size: 13px; color: var(--text-3); line-height: 1.7; }
+
+  /* 工作区 */
+  #workspace { flex: 1; display: none; min-height: 0; }
+  aside {
+    width: 240px; background: var(--card); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .side-sec { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .side-sec h3 { font-size: 12px; color: var(--text-3); font-weight: 500; margin-bottom: 8px; }
+  .info-grid { font-size: 12.5px; line-height: 2; color: var(--text-2); }
+  .info-grid b { color: var(--text); font-weight: 500; }
+  #pageList { flex: 1; overflow-y: auto; padding: 8px; }
+  .page-item {
+    padding: 10px 12px; border-radius: 10px; cursor: pointer;
+    font-size: 13.5px; display: flex; align-items: center; gap: 8px;
+    color: var(--text-2); margin-bottom: 2px;
+  }
+  .page-item:hover { background: #f3f4f6; }
+  .page-item.active { background: #eef3ff; color: var(--accent); font-weight: 500; }
+  .page-item .cnt { margin-left: auto; font-size: 11px; color: var(--text-3); }
+
+  #stage { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  #canvasWrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    overflow: auto; padding: 24px;
+  }
+  #device {
+    background: #111;
+    border-radius: 18px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.18), 0 0 0 8px #2a2a2e, 0 0 0 10px #3a3a3f;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  #device.circle { border-radius: 50%; }
+  #simCanvas { display: block; box-shadow: 0 12px 40px rgba(0,0,0,.18), 0 0 0 8px #2a2a2e, 0 0 0 10px #3a3a3f; border-radius: 6px; touch-action: none; }
+  #simDevice.circle #simCanvas { border-radius: 50%; }
+  #simBadge {
+    position: absolute; bottom: -34px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; color: #9ca3af; white-space: nowrap;
+  }
+  #screen { position: relative; transform-origin: 0 0; }
+  .w { position: absolute; }
+
+  #logbar {
+    background: var(--card); border-top: 1px solid var(--border);
+    padding: 10px 16px; font-size: 12px; color: var(--text-2);
+    font-family: Consolas, monospace; white-space: pre-wrap;
+    max-height: 110px; overflow-y: auto; flex-shrink: 0;
+    display: none;
+  }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; background: #eef3ff; color: var(--accent);
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">S</div>
+  <div>
+    <h1>SPJ 工程转换器</h1>
+    <div class="sub">SquareLine 工程 → 中间 JSON / LVGL C 代码</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="badge" id="verBadge" style="display:none"></span>
+  <button class="btn btn-ghost" id="btnImport" style="display:none">重新导入</button>
+  <button class="btn" id="btnSim" style="display:none;background:#ff7a1a;color:#fff">▶ 实时仿真</button>
+  <button class="btn btn-primary" id="btnExportJson" style="display:none">导出中间 JSON</button>
+  <button class="btn btn-primary" id="btnExportC" style="display:none">导出 C 工程</button>
+</header>
+
+<main>
+  <div id="empty">
+    <div class="dropzone" id="dropzone">
+      <div class="icon">📂</div>
+      <div class="t1">拖入 .spj 工程文件</div>
+      <div class="t2">或点击此处选择文件<br>支持 SquareLine Studio 导出的工程</div>
+    </div>
+  </div>
+
+  <div id="workspace">
+    <aside>
+      <div class="side-sec">
+        <h3>工程信息</h3>
+        <div class="info-grid" id="projInfo"></div>
+      </div>
+      <div class="side-sec" style="padding-bottom:6px">
+        <h3>屏幕</h3>
+      </div>
+      <div id="pageList"></div>
+    </aside>
+    <div id="stage">
+      <div id="canvasWrap">
+        <div id="device"><div id="screen"></div></div>
+        <div id="simDevice" style="display:none;position:relative">
+          <canvas id="simCanvas"></canvas>
+          <div id="simBadge">实时仿真 · LVGL 9.5 内核</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="logbar"></div>
+
+<script>
+/* ============ SPJ 解析器 ============ */
+function prop(node, t) { return (node.properties || []).find(p => p.strtype === t); }
+function pval(node, t) {
+  const p = prop(node, t);
+  if (!p) return undefined;
+  return p.strval ?? p.intarray ?? p.floatval ?? p.flags;
+}
+function parseStyle(node, t) {
+  const p = prop(node, t);
+  const def = {};
+  if (!p) return def;
+  for (const state of p.childs || []) {
+    if ((state.strval ?? "DEFAULT") !== "DEFAULT") continue;
+    for (const f of state.childs || []) {
+      const key = (f.strtype || "").split("/").pop();
+      if (key === "Bg_Color" && f.intarray) def.bgColor = f.intarray;
+      else if (key === "Radius" && f.intarray) def.radius = f.intarray[0];
+      else if (key === "Text_Color" && f.intarray) def.textColor = f.intarray;
+      else if (key === "Border_Color" && f.intarray) def.borderColor = f.intarray;
+      else if (key === "Border_Width" && f.intarray) def.borderWidth = f.intarray[0];
+      else if (key === "Bg_Image" && f.strval) def.bgImage = f.strval;
+    }
+  }
+  return def;
+}
+const ANCHORS = {
+  TOP_LEFT: [0,0], TOP_MID: [.5,0], TOP_RIGHT: [1,0],
+  LEFT_MID: [0,.5], CENTER: [.5,.5], RIGHT_MID: [1,.5],
+  BOTTOM_LEFT: [0,1], BOTTOM_MID: [.5,1], BOTTOM_RIGHT: [1,1],
+};
+function alignOffset(node, pw, ph, w, h) {
+  const align = pval(node, "OBJECT/Align") || "TOP_LEFT";
+  const pos = pval(node, "OBJECT/Position") || [0, 0];
+  const a = ANCHORS[align] || ANCHORS.TOP_LEFT;
+  return [a[0]*pw - a[0]*w + (pos[0]||0), a[1]*ph - a[1]*h + (pos[1]||0)];
+}
+function parseWidget(node, pw, ph) {
+  const type = node.saved_objtypeKey || "UNKNOWN";
+  if (type === "STARTEVENTS") return null;
+  const size = pval(node, "OBJECT/Size") || [50, 30];
+  const [x, y] = alignOffset(node, pw, ph, size[0]||50, size[1]||30);
+  const w = {
+    type, name: pval(node, "OBJECT/Name") || type,
+    x, y, w: size[0]||50, h: size[1]||30,
+    align: pval(node, "OBJECT/Align") || "TOP_LEFT",
+    posOffset: pval(node, "OBJECT/Position") || [0, 0],
+    style: parseStyle(node, type + "/Style_main"),
+    children: [],
+  };
+  if (type === "LABEL") w.text = pval(node, "LABEL/Text");
+  if (type === "BUTTON") w.text = pval(node, "BUTTON/Text");
+  if (type === "ARC" || type === "SLIDER") {
+    w.range = pval(node, type + "/Range");
+    w.value = pval(node, type + "/Value");
+  }
+  if (type === "IMAGE") {
+    w.asset = pval(node, "IMAGE/Asset");
+    w.pivot = pval(node, "IMAGE/Pivot");
+    w.rotation = pval(node, "IMAGE/Rotation");
+    w.scale = pval(node, "IMAGE/Scale");
+  }
+  for (const c of node.children || []) {
+    const cw = parseWidget(c, w.w, w.h);
+    if (cw) w.children.push(cw);
+  }
+  return w;
+}
+function parseSpj(json) {
+  const info = json.info || {};
+  const W = info.width || 800, H = info.height || 480;
+  const pages = [];
+  for (const screen of (json.root && json.root.children) || []) {
+    if (!screen.isPage) continue;
+    const page = {
+      name: String(pval(screen, "SCREEN/Screen") || pval(screen, "OBJECT/Name") || "Screen"),
+      widgets: [],
+      bgColor: parseStyle(screen, "SCREEN/Style_main").bgColor,
+    };
+    for (const c of screen.children || []) {
+      const w = parseWidget(c, W, H);
+      if (w) page.widgets.push(w);
+    }
+    pages.push(page);
+  }
+  return { editorVersion: info.editor_version || "", width: W, height: H,
+           shape: info.shape || "RECT", pages };
+}
+
+/* ============ 渲染器 ============ */
+function rgba(c, fb) { return c ? `rgba(${c[0]},${c[1]},${c[2]},${(c[3]??255)/255})` : (fb || "transparent"); }
+
+function renderWidget(w, pw, ph) {
+  const el = document.createElement("div");
+  el.className = "w";
+  const autoSize = w.w <= 1 || w.h <= 1;  /* size [1,1] = LV_SIZE_CONTENT */
+  if (autoSize) {
+    el.dataset.autosize = "1";
+    el.dataset.align = w.align || "TOP_LEFT";
+    el.dataset.offset = JSON.stringify(w.posOffset || [0, 0]);
+    el.dataset.pw = pw; el.dataset.ph = ph;
+    el.style.visibility = "hidden";  /* 测量完再显示 */
+  } else {
+    el.style.left = w.x + "px";
+    el.style.top = w.y + "px";
+  }
+  if (!autoSize || w.w > 1) el.style.width = w.w + "px";
+  if (!autoSize || w.h > 1) el.style.height = w.h + "px";
+  const s = w.style || {};
+  switch (w.type) {
+    case "LABEL": {
+      el.style.color = rgba(s.textColor, "#fff");
+      el.style.fontSize = Math.min(w.h > 1 ? w.h : 16, 28) + "px";
+      el.style.whiteSpace = "nowrap";
+      el.style.lineHeight = "1.2";
+      el.textContent = w.text || "";
+      break;
+    }
+    case "BUTTON": {
+      el.style.background = rgba(s.bgColor, "#2196f3");
+      el.style.borderRadius = (s.radius ?? 8) + "px";
+      el.style.display = "flex"; el.style.alignItems = "center"; el.style.justifyContent = "center";
+      if (!w.children.length && w.text) {
+        el.style.color = rgba(s.textColor, "#fff");
+        el.style.fontSize = "14px";
+        el.textContent = w.text;
+      }
+      break;
+    }
+    case "ARC": {
+      const [min, max] = w.range || [0, 100];
+      const ratio = ((w.value ?? min) - min) / ((max - min) || 1);
+      const r = Math.min(w.w, w.h) / 2 - 8;
+      const cx = w.w / 2, cy = w.h / 2, circ = 2 * Math.PI * r;
+      el.innerHTML = `<svg width="${w.w}" height="${w.h}">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="10"/>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${rgba(s.bgColor, "#2196f3")}" stroke-width="10"
+          stroke-linecap="round" stroke-dasharray="${circ * ratio * .75} ${circ}" transform="rotate(135 ${cx} ${cy})"/>
+      </svg>`;
+      break;
+    }
+    case "SLIDER": {
+      const [min, max] = w.range || [0, 100];
+      const ratio = ((w.value ?? min) - min) / ((max - min) || 1);
+      el.style.display = "flex"; el.style.alignItems = "center";
+      el.innerHTML = `<div style="width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.2);position:relative">
+        <div style="position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:#60a5fa;width:${ratio*100}%"></div>
+        <div style="position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);left:${ratio*100}%;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>
+      </div>`;
+      break;
+    }
+    case "CHART": {
+      el.style.background = rgba(s.bgColor, "rgba(255,255,255,.06)");
+      el.style.borderRadius = (s.radius ?? 4) + "px";
+      el.innerHTML = `<svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 50">
+        <polyline points="0,40 15,32 30,36 45,22 60,28 75,14 90,20 100,10" fill="none" stroke="#34d399" stroke-width="2"/></svg>`;
+      break;
+    }
+    case "SWITCH": {
+      el.style.borderRadius = w.h / 2 + "px";
+      el.style.background = "#6b7280";
+      el.innerHTML = `<div style="position:absolute;top:2px;left:2px;width:${w.h-4}px;height:${w.h-4}px;background:#fff;border-radius:50%"></div>`;
+      break;
+    }
+    case "IMAGE": {
+      const img = document.createElement("img");
+      if (el.dataset.autosize) {  /* 自然尺寸 */
+        img.style.display = "block";
+      } else {
+        img.style.width = "100%"; img.style.height = "100%";
+        img.style.objectFit = "contain";
+      }
+      const deg = (w.rotation || 0) / 10;
+      if (deg) img.style.transform = `rotate(${deg}deg)`;
+      img.onload = () => fixAutosize();  /* 图片加载后重算锚定 */
+      if (w.asset) {
+        window.pywebview.api.get_asset(w.asset).then(url => {
+          if (url) img.src = url;
+          else { el.style.background = "rgba(255,255,255,.1)"; el.textContent = "🖼"; }
+          fixAutosize();
+        });
+      }
+      el.appendChild(img);
+      break;
+    }
+    default: {
+      el.style.background = rgba(s.bgColor, "transparent");
+      if (s.bgImage) {
+        window.pywebview.api.get_asset(s.bgImage).then(url => {
+          if (url) { el.style.backgroundImage = `url(${url})`; el.style.backgroundSize = "cover"; }
+          fixAutosize();
+        });
+      }
+      el.style.borderRadius = (s.radius ?? 4) + "px";
+      if (s.bgColor || s.bgImage) {
+        el.style.display = "flex"; el.style.alignItems = "center"; el.style.justifyContent = "center";
+        el.style.color = "rgba(255,255,255,.6)"; el.style.fontSize = "11px";
+      }
+    }
+  }
+  for (const c of w.children || []) el.appendChild(renderWidget(c, w.w > 1 ? w.w : 0, w.h > 1 ? w.h : 0));
+  return el;
+}
+
+/* 自适应组件：按 LVGL 语义先量内容尺寸再锚定 */
+function fixAutosize() {
+  const scr = $("screen");
+  const scale = scr.style.transform ? parseFloat(scr.style.transform.replace(/[^0-9.]/g, "")) : 1;
+  scr.querySelectorAll("[data-autosize]").forEach(el => {
+    const rw = el.offsetWidth, rh = el.offsetHeight;
+    const a = ANCHORS[el.dataset.align] || ANCHORS.TOP_LEFT;
+    const [ox, oy] = JSON.parse(el.dataset.offset);
+    const pw = parseFloat(el.dataset.pw), ph = parseFloat(el.dataset.ph);
+    el.style.left = (a[0] * pw - a[0] * rw + ox) + "px";
+    el.style.top = (a[1] * ph - a[1] * rh + oy) + "px";
+    el.style.visibility = "visible";
+  });
+}
+
+/* ============ 应用逻辑 ============ */
+let project = null;
+let pageIdx = 0;
+
+const $ = id => document.getElementById(id);
+
+function log(msg) {
+  const bar = $("logbar");
+  bar.style.display = "block";
+  bar.textContent += (bar.textContent ? "\n" : "") + msg;
+  bar.scrollTop = bar.scrollHeight;
+}
+
+function showPage(i) {
+  pageIdx = i;
+  if (sim) { sim.ex.sim_show_page(i); return; }
+  document.querySelectorAll(".page-item").forEach((el, j) => el.classList.toggle("active", j === i));
+  const page = project.pages[i];
+  const dev = $("device");
+  const wrap = $("canvasWrap");
+  const scale = Math.min(1, (wrap.clientWidth - 60) / project.width, (wrap.clientHeight - 60) / project.height);
+  dev.style.width = project.width * scale + "px";
+  dev.style.height = project.height * scale + "px";
+  dev.classList.toggle("circle", project.shape === "CIRCLE");
+  dev.style.background = rgba(page.bgColor, "#111");
+  const scr = $("screen");
+  scr.style.transform = `scale(${scale})`;
+  scr.style.width = project.width + "px";
+  scr.style.height = project.height + "px";
+  scr.innerHTML = "";
+  for (const w of page.widgets) scr.appendChild(renderWidget(w, project.width, project.height));
+  requestAnimationFrame(fixAutosize);
+}
+
+function loadProject(json) {
+  project = parseSpj(json);
+  $("empty").style.display = "none";
+  $("workspace").style.display = "flex";
+  $("btnImport").style.display = "";
+  $("btnSim").style.display = "";
+  $("btnExportJson").style.display = "";
+  $("btnExportC").style.display = "";
+  $("verBadge").style.display = "";
+  $("verBadge").textContent = "SquareLine " + (project.editorVersion || "?");
+  $("projInfo").innerHTML =
+    `分辨率 <b>${project.width} × ${project.height}</b><br>` +
+    `形状 <b>${project.shape === "CIRCLE" ? "圆形" : "矩形"}</b><br>` +
+    `屏幕数 <b>${project.pages.length}</b>`;
+  const list = $("pageList");
+  list.innerHTML = "";
+  project.pages.forEach((p, i) => {
+    const el = document.createElement("div");
+    el.className = "page-item";
+    el.innerHTML = `<span>🖥</span> ${p.name} <span class="cnt">${countWidgets(p.widgets)}</span>`;
+    el.onclick = () => showPage(i);
+    list.appendChild(el);
+  });
+  showPage(0);
+  log(`✅ 解析完成：${project.pages.length} 个屏幕，共 ${project.pages.reduce((n, p) => n + countWidgets(p.widgets), 0)} 个组件`);
+}
+function countWidgets(ws) {
+  return ws.reduce((n, w) => n + 1 + countWidgets(w.children || []), 0);
+}
+
+/* 导入 */
+async function doImport() {
+  try {
+    const res = await window.pywebview.api.pick_spj();
+    if (!res) return;
+    loadProject(JSON.parse(res.content));
+  } catch (e) {
+    log("❌ 导入失败：" + e);
+  }
+}
+$("dropzone").onclick = doImport;
+$("btnImport").onclick = doImport;
+
+/* 拖拽导入 */
+document.body.ondragover = e => { e.preventDefault(); $("dropzone").classList.add("over"); };
+document.body.ondragleave = () => $("dropzone").classList.remove("over");
+document.body.ondrop = async e => {
+  e.preventDefault();
+  $("dropzone").classList.remove("over");
+  const f = e.dataTransfer.files[0];
+  if (!f) return;
+  try {
+    loadProject(JSON.parse(await f.text()));
+  } catch (err) {
+    log("❌ 不是有效的 .spj 文件");
+  }
+};
+
+/* ============ WASM 实时仿真引擎 ============ */
+let sim = null;  /* {exports, fbPtr, w, h, ctx} */
+
+async function startSim() {
+  log("⏳ 正在生成代码并编译 WASM 仿真内核…");
+  $("btnSim").disabled = true;
+  try {
+    const r = await window.pywebview.api.simulate_wasm(JSON.stringify(project));
+    const bytes = Uint8Array.from(atob(r.wasm), c => c.charCodeAt(0));
+    const { instance } = await WebAssembly.instantiate(bytes, {});
+    const ex = instance.exports;
+    const w = project.width, h = project.height;
+    if (ex.sim_init(w, h) !== 0) throw new Error("仿真内存初始化失败");
+    sim = { ex, fbPtr: ex.sim_fb(), w, h };
+
+    const cv = $("simCanvas");
+    cv.width = w; cv.height = h;
+    const wrap = $("canvasWrap");
+    const scale = Math.min(2, (wrap.clientWidth - 60) / w, (wrap.clientHeight - 60) / h);
+    cv.style.width = w * scale + "px";
+    cv.style.height = h * scale + "px";
+    sim.ctx = cv.getContext("2d");
+    sim.scale = scale;
+
+    /* 显示仿真画布，隐藏静态预览 */
+    $("device").style.display = "none";
+    const sd = $("simDevice");
+    sd.style.display = "block";
+    sd.classList.toggle("circle", project.shape === "CIRCLE");
+
+    let down = false;
+    const toSim = e => {
+      const r = cv.getBoundingClientRect();
+      return [Math.round((e.clientX - r.left) / r.width * w),
+              Math.round((e.clientY - r.top) / r.height * h)];
+    };
+    cv.onpointerdown = e => { down = true; const [x, y] = toSim(e); ex.sim_mouse(x, y, 1); cv.setPointerCapture(e.pointerId); };
+    cv.onpointermove = e => { const [x, y] = toSim(e); ex.sim_mouse(x, y, down ? 1 : 0); };
+    cv.onpointerup = e => { down = false; const [x, y] = toSim(e); ex.sim_mouse(x, y, 0); };
+
+    setInterval(() => {
+      try {
+        if (sim.ex.sim_step(20)) {
+          const px = new Uint8ClampedArray(sim.ex.memory.buffer, sim.fbPtr, sim.w * sim.h * 4);
+          sim.ctx.putImageData(new ImageData(px, sim.w, sim.h), 0, 0);
+        }
+      } catch (err) { /* 内存增长导致的瞬时异常忽略 */ }
+    }, 30);
+
+    log("✅ 实时仿真已启动：点击/拖动即真实交互，左滑右滑切换屏幕");
+  } catch (e) {
+    log("❌ 仿真失败：" + (e.message || e));
+  } finally {
+    $("btnSim").disabled = false;
+  }
+}
+
+$("btnSim").onclick = startSim;
+
+$("btnExportJson").onclick = async () => {
+  const r = await window.pywebview.api.save_text("camera-ui.json", JSON.stringify(project, null, 2));
+  log(r ? "✅ 中间 JSON 已导出：" + r : "已取消");
+};
+$("btnExportC").onclick = async () => {
+  log("⏳ 正在生成 C 代码并编译验证…");
+  $("btnExportC").disabled = true;
+  try {
+    const r = await window.pywebview.api.export_c(JSON.stringify(project));
+    log(r.log);
+  } catch (e) {
+    log("❌ 导出失败：" + e);
+  } finally {
+    $("btnExportC").disabled = false;
+  }
+};
+
+window.addEventListener("resize", () => { if (project) showPage(pageIdx); });
+</script>
+</body>
+</html>
