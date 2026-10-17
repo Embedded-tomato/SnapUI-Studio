@@ -26,8 +26,8 @@ if errorlevel 1 (
     )
 )
 echo.
-echo Starting SPJ converter ...
-python converter\app.py
+echo Starting SPJ converter (splash will show, this window closes) ...
+start "" pythonw converter\launcher.py
 goto end
 
 REM ---------- editor ----------
