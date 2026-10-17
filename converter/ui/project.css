@@ -1,0 +1,100 @@
+/* 槽位编辑器（新建工程模式）样式 */
+
+#projWorkspace { flex: 1; display: none; min-height: 0; }
+
+/* 组件面板 */
+#palette {
+  width: 176px; background: var(--card); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+#palette h3 {
+  font-size: 12px; color: var(--text-3); font-weight: 500;
+  padding: 14px 14px 8px;
+}
+.pal-item {
+  margin: 0 10px 6px; padding: 8px 10px; border-radius: 10px;
+  border: 1px solid var(--border); background: #fff; cursor: grab;
+  display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+  color: var(--text); transition: all .12s;
+}
+.pal-item:hover { border-color: var(--accent); background: #f5f8ff; }
+.pal-item:active { cursor: grabbing; }
+.pal-item .pi {
+  width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+  background: #eef3ff; color: var(--accent); font-size: 12px;
+  display: flex; align-items: center; justify-content: center; font-weight: 600;
+}
+.pal-item .pn { flex: 1; }
+.pal-item .pd { display: none; }
+
+/* 中央画布：槽位容器 */
+#projStage { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+#projWrap {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  overflow: auto; padding: 24px;
+}
+#projDevice {
+  background: #111; border-radius: 18px; position: relative; flex-shrink: 0;
+  box-shadow: 0 12px 40px rgba(0,0,0,.18), 0 0 0 8px #2a2a2e, 0 0 0 10px #3a3a3f;
+}
+#projDevice.circle { border-radius: 50%; }
+#projScreen { position: relative; transform-origin: 0 0; }
+
+/* 槽位 */
+.slot {
+  position: absolute; border: 1.5px dashed rgba(255,255,255,.22); border-radius: 8px;
+  display: flex; transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.slot.flow-row { flex-direction: row; }
+.slot.flow-column { flex-direction: column; }
+.slot.slot-idle:hover { border-color: rgba(255,255,255,.45); }
+.slot.slot-hot {
+  border: 1.5px solid var(--accent); background: rgba(61,109,245,.14);
+  box-shadow: 0 0 0 3px rgba(61,109,245,.25);
+}
+.slot.slot-dim { border-color: rgba(255,255,255,.08); }
+.slot.slot-full { border-color: rgba(248,113,113,.5); }
+.slot-label {
+  position: absolute; top: -18px; left: 2px; font-size: 10px;
+  color: rgba(255,255,255,.45); white-space: nowrap; pointer-events: none;
+}
+.slot-empty-hint {
+  margin: auto; font-size: 11px; color: rgba(255,255,255,.28); pointer-events: none;
+}
+
+/* 槽内组件 */
+.chip {
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  cursor: grab; position: relative; overflow: hidden; flex-shrink: 0;
+  border: 1.5px solid transparent; transition: border-color .12s, transform .12s;
+}
+.chip:hover { border-color: rgba(255,255,255,.5); }
+.chip.selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(61,109,245,.4); }
+.chip:active { cursor: grabbing; }
+
+/* 幽灵（拖动跟随） */
+#ghost {
+  position: fixed; pointer-events: none; z-index: 99; opacity: .75;
+  border-radius: 8px; transform: translate(-50%, -50%);
+  box-shadow: 0 8px 20px rgba(0,0,0,.35); display: none;
+}
+
+/* 属性面板 */
+#propPanel {
+  width: 220px; background: var(--card); border-left: 1px solid var(--border);
+  display: none; flex-direction: column; flex-shrink: 0;
+}
+#propPanel h3 { font-size: 12px; color: var(--text-3); font-weight: 500; padding: 14px 14px 8px; }
+.prop-row { padding: 6px 14px; font-size: 12.5px; }
+.prop-row label { display: block; color: var(--text-2); margin-bottom: 4px; }
+.prop-row input[type=text], .prop-row input[type=number], .prop-row select {
+  width: 100%; padding: 6px 8px; border: 1px solid var(--border);
+  border-radius: 8px; font-size: 12.5px; font-family: inherit; outline: none;
+}
+.prop-row input:focus, .prop-row select:focus { border-color: var(--accent); }
+.prop-btns { padding: 10px 14px; display: flex; gap: 8px; }
+.prop-del {
+  flex: 1; border: none; border-radius: 8px; padding: 7px 0; font-size: 12.5px;
+  background: #fef2f2; color: #dc2626; cursor: pointer; font-family: inherit;
+}
+.prop-del:hover { background: #fee2e2; }

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SnapUI Studio</title>
+<link rel="stylesheet" href="project.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -179,6 +180,7 @@
   <div class="spacer"></div>
   <span class="badge" id="verBadge" style="display:none"></span>
   <button class="btn btn-ghost" id="btnImport" style="display:none">重新导入</button>
+  <button class="btn btn-ghost" id="btnSaveProj" style="display:none">保存工程</button>
   <button class="btn" id="btnSim" style="display:none;background:#ff7a1a;color:#fff">▶ 实时仿真</button>
   <button class="btn btn-primary" id="btnExportJson" style="display:none">导出中间 JSON</button>
   <button class="btn btn-primary" id="btnExportC" style="display:none">导出 C 工程</button>
@@ -190,7 +192,27 @@
       <div class="icon">📂</div>
       <div class="t1">拖入 .spj 工程文件</div>
       <div class="t2">或点击此处选择文件<br>支持 SquareLine Studio 导出的工程</div>
+      <div style="margin-top:18px">
+        <button class="btn btn-primary" id="btnNewProj">✚ 新建工程</button>
+      </div>
     </div>
+  </div>
+
+  <!-- 槽位编辑器（新建工程模式） -->
+  <div id="projWorkspace">
+    <div id="palette"></div>
+    <div id="projStage">
+      <div id="projWrap">
+        <div id="projDevice"><div id="projScreen"></div></div>
+      </div>
+    </div>
+    <aside style="width:200px;border-left:none;border-right:1px solid var(--border)">
+      <div class="side-sec">
+        <h3>屏幕</h3>
+      </div>
+      <div id="projPageList" style="flex:1;overflow-y:auto;padding:8px"></div>
+    </aside>
+    <div id="propPanel"></div>
   </div>
 
   <div id="workspace">
@@ -223,6 +245,8 @@
 
 <div id="logbar"></div>
 
+<script src="registry.js"></script>
+<script src="project.js"></script>
 <script>
 /* ============ SPJ 解析器 ============ */
 function prop(node, t) { return (node.properties || []).find(p => p.strtype === t); }
@@ -548,6 +572,7 @@ function loadProject(json) {
   $("empty").style.display = "none";
   $("workspace").style.display = "flex";
   $("btnImport").style.display = "";
+  $("btnSaveProj").style.display = "";
   $("btnSim").style.display = "";
   $("btnExportJson").style.display = "";
   $("btnExportC").style.display = "";
@@ -684,10 +709,34 @@ $("btnExportC").onclick = async () => {
 };
 
 window.addEventListener("resize", () => {
-  if (!project) return;
+  if (!project && !Proj.project) return;
   if (viewMode === "overview") renderOverview();
+  else if (Proj.project) renderProjCanvas();
   else showPage(pageIdx);
 });
+
+/* ============ 新建工程模式入口 ============ */
+$("btnNewProj").onclick = () => newProject("camera");
+$("btnSaveProj").onclick = saveProject;
+P$("projWrap").onclick = e => {
+  if (e.target === P$("projWrap")) { Proj.selected = null; renderPropPanel();
+    document.querySelectorAll("#projScreen .chip").forEach(el => el.classList.remove("selected")); }
+};
+
+/* 拖入 .json 工程文件 */
+document.body.ondrop = async e => {
+  e.preventDefault();
+  $("dropzone").classList.remove("over");
+  const f = e.dataTransfer.files[0];
+  if (!f) return;
+  try {
+    const json = JSON.parse(await f.text());
+    if (json.format === "snapui@1") { loadProjectJson(json); return; }
+    loadProject(json);
+  } catch (err) {
+    log("❌ 不是有效的工程文件");
+  }
+};
 </script>
 </body>
 </html>
