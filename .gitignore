@@ -22,6 +22,11 @@ shots/
 *.zip
 *.tar.gz
 
+# 本地依赖（不进仓库，见 README）
+/lvgl/
+/sdl2/
+/lv_conf.h
+
 # IDE
 .vscode/
 .idea/

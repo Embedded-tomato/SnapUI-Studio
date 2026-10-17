@@ -10,7 +10,7 @@ ZIG_DIR = os.path.dirname(ziglang.__file__)
 datas = [
     (os.path.join(ROOT, "converter", "ui"), "converter/ui"),
     (os.path.join(ROOT, "converter", "sim_main.c"), "converter"),
-    (os.path.join(ROOT, "gen_spj_c.py", ), "."),
+    (os.path.join(ROOT, "tools", "gen_spj_c.py"), "tools"),
     (os.path.join(ROOT, "wasm", "shim.c"), "wasm"),
     (os.path.join(ROOT, "wasm", "conf", "lv_conf.h"), "wasm/conf"),
     (os.path.join(ROOT, "lv_conf.h"), "."),

@@ -34,7 +34,7 @@ def zig_cmd():
 def gen_c(project_json_path, outdir, assets_root):
     """进程内调用代码生成器（打包后也能用）"""
     import importlib.util
-    spec = importlib.util.spec_from_file_location("gen_spj_c", resource_path("gen_spj_c.py"))
+    spec = importlib.util.spec_from_file_location("gen_spj_c", resource_path("tools", "gen_spj_c.py"))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod.generate(json.load(open(project_json_path, encoding="utf-8")), outdir, assets_root)
